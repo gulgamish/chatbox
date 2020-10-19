@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -19,11 +20,11 @@ int	ft_getline(char buff[BUFF_SIZE])
 		buff[i] = c;
 		i++;
 	}
-	buff[i + 1] = '\0';
+	buff[i] = '\0';
 	return (ret);
 }
 
-int	login(int server_fd)
+int	signin(int server_fd)
 {
 	char	buff_user[BUFF_SIZE];
 	char	buff_passwd[BUFF_SIZE];
@@ -32,9 +33,6 @@ int	login(int server_fd)
 
 	write(1, "enter your username : ", 22);
 	if (ft_getline(buff_user) == -1)
-		return (-1);
-	write(1, "enter your password : ", 22);
-	if (ft_getline(buff_passwd) == -1)
 		return (-1);
 	write(server_fd, buff_user, sizeof(buff_user));
 	if ((ret = read(server_fd, server_reply, sizeof(server_reply))) == -1)
@@ -45,6 +43,9 @@ int	login(int server_fd)
 		printf("access not granted, wrong username");
 		return (-1);
 	}
+	write(1, "enter your password : ", 22);
+	if (ft_getline(buff_passwd) == -1)
+		return (-1);
 	write(server_fd, buff_passwd, sizeof(buff_passwd));
 	if ((ret = read(server_fd, server_reply, sizeof(server_reply))) == -1)
 		return (-1);
@@ -54,6 +55,11 @@ int	login(int server_fd)
 		printf("access not granted, wrong password");
 		return (-1);
 	}
+	return (1);
+}
+
+int	signup(int server_fd)
+{
 	return (1);
 }
 
@@ -67,6 +73,7 @@ int main(void)
 	int choice;
 
 	bzero(buff, BUFF_SIZE);
+	choice = 0;
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
 		addr.sin_family = AF_INET;
@@ -75,29 +82,32 @@ int main(void)
 		if (connect(fd, (const struct sockaddr *)&addr, sizeof(addr)) == 0)
 		{
 			puts("you're now connected to the server, have fun :)");
-			puts("1.login 2.sign in");
+			puts("please make a choice (1 or 2) : 1.sign in 2.sign up");
 			ft_getline(buff);
 			choice = atoi(buff);
 			if (choice == 1)
 			{
-				if (login(fd) == -1)
+				write(fd, buff, sizeof(buff));
+				read(fd, server_reply, sizeof(server_reply));
+				if (strcmp(server_reply, "OK") != 0)
 					return (0);
+				if (signin(fd) == -1)
+					return (0);
+				puts("\033[0;32maccess granted\033[0m");
 			}
 			else if (choice == 2)
-				signin(fd);
+				signup(fd);
 			else
 			{
 				puts("unrecognized choice");
 				return (0);
 			}
-			printf("access granted");
+			bzero(buff, BUFF_SIZE);
 			while (ft_getline(buff) != -1 && strcmp(buff, "exit") != 0)
 			{
 				write(fd, buff, sizeof(buff));
 				read(fd, server_reply, sizeof(server_reply));
 				puts(server_reply);
-				//if (strcmp(buff, "exit") == 0)
-				//	break ;
 				bzero(buff, BUFF_SIZE);
 			}
 		}
