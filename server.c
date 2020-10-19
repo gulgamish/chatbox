@@ -20,6 +20,7 @@ int main(void)
 	char buff[BUFF_SIZE];
 	char *reply = "OK";
 	char *username_request = "enter your username : ";
+	int test;
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
