@@ -9,6 +9,59 @@
 
 #define BUFF_SIZE 80
 
+int	ft_getline(char buff[BUFF_SIZE])
+{
+	char c;
+	int ret;
+	int i;
+
+	i = 0;
+	while ((ret = read(0, &c, 1)) != -1 && ret != 0 && c != '\n')
+	{
+		buff[i] = c;
+		i++;
+	}
+	buff[i] = '\0';
+	return (ret);
+}
+
+int	client_choice(char buff[BUFF_SIZE])
+{
+	int choice;
+
+	return (choice = atoi(buff));
+}
+
+int	is_registred(int client_fd)
+{
+	return (1);
+}
+
+int	write_clientname(int fd, char buff[BUFF_SIZE])
+{
+	if (write(fd, "n:", 2) == -1)
+		return (-1);
+	if (write(fd, buff, sizeof(BUFF_SIZE)) == -1)
+		return (-1);
+}
+
+int	signup(int client_fd)
+{
+	int		fd;
+	char	buff[BUFF_SIZE];
+	char	*reply = "OK";
+	int		ret;
+
+	if ((fd = open("userdata", O_WRONLY | O_APPEND)) == -1)
+		return (-1);
+	if (read(client_fd, buff, sizeof(buff)) == -1)
+		return (-1);
+	if (write(client_fd, reply, sizeof(reply)) == -1)
+		return (-1);
+	if (write_clientname(fd, buff) == -1)
+		return (-1);
+}
+
 int main(void)
 {
 	int fd;
@@ -39,14 +92,23 @@ int main(void)
 					//fork();
 					if ((client_fd = accept(fd, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) != -1)
 					{
-						//read(client_fd, buff, sizeof(buff));
-						//puts(buff);
-						while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
+						if (read(client_fd, buff, sizeof(buff)) == -1)
+							return (0);
+						write(client_fd, reply, sizeof(reply));
+						if (client_choice(buff) == 1)
 						{
-							write(client_fd, reply, sizeof(reply));
-							puts(buff);
-							bzero(buff, BUFF_SIZE);
+							if (is_registred(client_fd))
+							{
+								while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
+								{
+									write(client_fd, reply, sizeof(reply));
+									puts(buff);
+									bzero(buff, BUFF_SIZE);
+								}
+							}
 						}
+						else if (client_choice(buff) == 2)
+							signup(client_fd);
 					}
 					else
 						puts(strerror(errno));
