@@ -29,30 +29,27 @@ int	signin(int server_fd)
 	char	buff_user[BUFF_SIZE];
 	char	buff_passwd[BUFF_SIZE];
 	char	server_reply[BUFF_SIZE];
-	int	ret;
 
 	write(1, "enter your username : ", 22);
 	if (ft_getline(buff_user) == -1)
 		return (-1);
 	write(server_fd, buff_user, sizeof(buff_user));
-	if ((ret = read(server_fd, server_reply, sizeof(server_reply))) == -1)
+	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
 		return (-1);
-	server_reply[ret - 1] = '\0';
 	if (strcmp(server_reply, "OK") != 0)
 	{
-		printf("access not granted, wrong username");
+		printf("access not granted, wrong username\n");
 		return (-1);
 	}
 	write(1, "enter your password : ", 22);
 	if (ft_getline(buff_passwd) == -1)
 		return (-1);
 	write(server_fd, buff_passwd, sizeof(buff_passwd));
-	if ((ret = read(server_fd, server_reply, sizeof(server_reply))) == -1)
+	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
 		return (-1);
-	server_reply[ret - 1] = '\0';
 	if (strcmp(server_reply, "OK") != 0)
 	{
-		printf("access not granted, wrong password");
+		printf("access not granted, wrong password\n");
 		return (-1);
 	}
 	return (1);
@@ -71,7 +68,18 @@ int	signup(int server_fd)
 	write(server_fd, buff_name, sizeof(buff_name));
 	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
 		return (-1);
-	puts(server_reply);
+	write(1, "enter your username : ", 22);
+	if (ft_getline(buff_user) == -1)
+		return (-1);
+	write(server_fd, buff_user, sizeof(buff_user));
+	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
+		return (-1);
+	write(1, "enter your password : ", 22);
+	if (ft_getline(buff_passwd) == -1)
+		return (-1);
+	write(server_fd, buff_passwd, sizeof(buff_passwd));
+	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
+		return (-1);
 	return (1);
 }
 
@@ -108,7 +116,11 @@ int main(void)
 				puts("\033[0;32maccess granted\033[0m");
 			}
 			else if (choice == 2)
-				signup(fd);
+			{
+				if (signup(fd) == -1)
+					return (0);
+				puts("\033[0;32mRegistred :)\033[0m");
+			}
 			else
 			{
 				puts("unrecognized choice");

@@ -10,6 +10,8 @@
 
 #define BUFF_SIZE 80
 
+char	**ft_strsplit(char const *s, char c);
+
 int	ft_getline(char buff[BUFF_SIZE])
 {
 	char c;
@@ -33,21 +35,81 @@ int	client_choice(char buff[BUFF_SIZE])
 	return (choice = atoi(buff));
 }
 
+int	is_user_match(char *userdata, char *username)
+{
+	char	**tab;
+
+	tab = NULL;
+	tab = ft_strsplit(userdata, ',');
+	if (strcmp(tab[1], username) == 0)
+		return (1);
+	return (0);
+}
+
+int	is_passwd_match(char *userdata, char *passwd)
+{
+	char	**tab;
+
+	tab = NULL;
+	tab = ft_strsplit(userdata, ',');
+	if (strcmp(tab[2], passwd) == 0)
+		return (1);
+	return (0);
+}
+
 int	is_registred(int client_fd)
 {
-	return (1);
+	char	**user_data;
+	char	data[4096];
+	char	buff_user[BUFF_SIZE];
+	char	buff_passwd[BUFF_SIZE];
+	char	*reply_ok = "OK";
+	char	*reply_ko = "KO";
+	int		fd;
+
+	user_data = NULL;
+	bzero(data, 4096);
+	bzero(buff_user, BUFF_SIZE);
+	bzero(buff_passwd, BUFF_SIZE);
+	if ((fd = open("userdata", O_RDONLY)) == -1)
+		return (-1);
+	if (read(fd, data, 4096) == -1)
+		return (-1);
+	user_data = ft_strsplit(data, '\n');
+	if (read(client_fd, buff_user, sizeof(buff_user)) == -1)
+		return (-1);
+	for (int i = 0; user_data[i]; i++)
+	{
+		if (is_user_match(user_data[i], buff_user))
+		{
+			write(client_fd, reply_ok, sizeof(reply_ok));
+			if (read(client_fd, buff_passwd, sizeof(buff_passwd)) == -1)
+				return (-1);
+			if (is_passwd_match(user_data[i], buff_passwd))
+			{
+				write(client_fd, reply_ok, sizeof(reply_ok));
+				strcpy(username, buff_user);
+				return (1);
+			}
+			else
+			{
+				write(client_fd, reply_ko, sizeof(reply_ko));
+				return (0);
+			}
+		}
+	}
+	write(client_fd, reply_ko, sizeof(reply_ko));
+	return (0);
 }
 
 void	write_clientdata(int fd, char buff_name[BUFF_SIZE], char buff_user[BUFF_SIZE], char buff_passwd[BUFF_SIZE])
 {
-	write(fd, "n:", 2);
 	write(fd, buff_name, strlen(buff_name));
 	write(fd, ",", 1);
-	write(fd, "u:", 2);
 	write(fd, buff_user, strlen(buff_user));
 	write(fd, ",", 1);
-	write(fd, "p:", 2);
 	write(fd, buff_passwd, strlen(buff_passwd));
+	write(fd, "\n", 1);
 }
 
 int	signup(int client_fd)
@@ -70,6 +132,7 @@ int	signup(int client_fd)
 		return (-1);
 	write(client_fd, reply, sizeof(reply));
 	write_clientdata(fd, buff_name, buff_user, buff_passwd);
+	close(fd);
 	return (1);
 }
 
@@ -83,7 +146,6 @@ int main(void)
 	int ret;
 	char buff[BUFF_SIZE];
 	char *reply = "OK";
-	char *username_request = "enter your username : ";
 	int test;
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
@@ -101,6 +163,7 @@ int main(void)
 				while (1)
 				{
 					//fork();
+					static char	username[128];
 					if ((client_fd = accept(fd, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) != -1)
 					{
 						if (read(client_fd, buff, sizeof(buff)) == -1)
@@ -110,6 +173,7 @@ int main(void)
 						{
 							if (is_registred(client_fd))
 							{
+login:
 								while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
 								{
 									write(client_fd, reply, sizeof(reply));
@@ -119,7 +183,11 @@ int main(void)
 							}
 						}
 						else if (client_choice(buff) == 2)
-							signup(client_fd);
+						{
+							if (signup(client_fd) == -1)
+								return (0);
+goto login;
+						}
 					}
 					else
 						puts(strerror(errno));
