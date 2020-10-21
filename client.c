@@ -60,6 +60,18 @@ int	signin(int server_fd)
 
 int	signup(int server_fd)
 {
+	char	buff_name[BUFF_SIZE];
+	char	buff_user[BUFF_SIZE];
+	char	buff_passwd[BUFF_SIZE];
+	char	server_reply[BUFF_SIZE];
+
+	write(1, "enter your name : ", 18);
+	if (ft_getline(buff_name) == -1)
+		return (-1);
+	write(server_fd, buff_name, sizeof(buff_name));
+	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
+		return (-1);
+	puts(server_reply);
 	return (1);
 }
 
@@ -83,14 +95,14 @@ int main(void)
 		{
 			puts("you're now connected to the server, have fun :)");
 			puts("please make a choice (1 or 2) : 1.sign in 2.sign up");
-			ft_getline(buff);
+			if (ft_getline(buff) == -1)
+				return (0);
+			write(fd, buff, sizeof(buff));
+			if (read(fd, server_reply, sizeof(server_reply)) == -1)
+				return (0);
 			choice = atoi(buff);
 			if (choice == 1)
 			{
-				write(fd, buff, sizeof(buff));
-				read(fd, server_reply, sizeof(server_reply));
-				if (strcmp(server_reply, "OK") != 0)
-					return (0);
 				if (signin(fd) == -1)
 					return (0);
 				puts("\033[0;32maccess granted\033[0m");

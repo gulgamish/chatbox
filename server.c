@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 
 #define BUFF_SIZE 80
 
@@ -37,29 +38,39 @@ int	is_registred(int client_fd)
 	return (1);
 }
 
-int	write_clientname(int fd, char buff[BUFF_SIZE])
+void	write_clientdata(int fd, char buff_name[BUFF_SIZE], char buff_user[BUFF_SIZE], char buff_passwd[BUFF_SIZE])
 {
-	if (write(fd, "n:", 2) == -1)
-		return (-1);
-	if (write(fd, buff, sizeof(BUFF_SIZE)) == -1)
-		return (-1);
+	write(fd, "n:", 2);
+	write(fd, buff_name, strlen(buff_name));
+	write(fd, ",", 1);
+	write(fd, "u:", 2);
+	write(fd, buff_user, strlen(buff_user));
+	write(fd, ",", 1);
+	write(fd, "p:", 2);
+	write(fd, buff_passwd, strlen(buff_passwd));
 }
 
 int	signup(int client_fd)
 {
 	int		fd;
-	char	buff[BUFF_SIZE];
+	char	buff_name[BUFF_SIZE];
+	char	buff_user[BUFF_SIZE];
+	char	buff_passwd[BUFF_SIZE];
 	char	*reply = "OK";
-	int		ret;
 
 	if ((fd = open("userdata", O_WRONLY | O_APPEND)) == -1)
 		return (-1);
-	if (read(client_fd, buff, sizeof(buff)) == -1)
+	if (read(client_fd, buff_name, sizeof(buff_name)) == -1)
 		return (-1);
-	if (write(client_fd, reply, sizeof(reply)) == -1)
+	write(client_fd, reply, sizeof(reply));
+	if (read(client_fd, buff_user, sizeof(buff_user)) == -1)
 		return (-1);
-	if (write_clientname(fd, buff) == -1)
+	write(client_fd, reply, sizeof(reply));
+	if (read(client_fd, buff_passwd, sizeof(buff_passwd)) == -1)
 		return (-1);
+	write(client_fd, reply, sizeof(reply));
+	write_clientdata(fd, buff_name, buff_user, buff_passwd);
+	return (1);
 }
 
 int main(void)
