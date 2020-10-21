@@ -12,6 +12,8 @@
 
 char	**ft_strsplit(char const *s, char c);
 
+static char	username[128];
+
 int	ft_getline(char buff[BUFF_SIZE])
 {
 	char c;
@@ -132,6 +134,7 @@ int	signup(int client_fd)
 		return (-1);
 	write(client_fd, reply, sizeof(reply));
 	write_clientdata(fd, buff_name, buff_user, buff_passwd);
+	strcpy(username, buff_user);
 	close(fd);
 	return (1);
 }
@@ -139,15 +142,20 @@ int	signup(int client_fd)
 int main(void)
 {
 	int fd;
+	int	chat_fd;
 	struct sockaddr_in addr;
 	struct sockaddr_in client_addr;
 	int addrlen;
 	int client_fd;
 	int ret;
 	char buff[BUFF_SIZE];
+	char bigbuff[4096];
 	char *reply = "OK";
 	int test;
 
+	bzero(bigbuff, 4096);
+	if ((chat_fd = open("chat_log", O_RDWR | O_APPEND)) == -1)
+		return (0);
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
 		// assign a name to socket
@@ -162,8 +170,7 @@ int main(void)
 				addrlen = sizeof(client_addr);
 				while (1)
 				{
-					//fork();
-					static char	username[128];
+					fork();
 					if ((client_fd = accept(fd, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) != -1)
 					{
 						if (read(client_fd, buff, sizeof(buff)) == -1)
@@ -176,9 +183,13 @@ int main(void)
 login:
 								while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
 								{
-									write(client_fd, reply, sizeof(reply));
-									puts(buff);
+									if ((chat_fd = open("chat_log", O_RDWR | O_APPEND)) == -1)
+										return (0);
+									dprintf(chat_fd, "[%s]: %s\n", username, buff);
+									read(chat_fd, bigbuff, 4096);
+									write(client_fd, bigbuff, sizeof(bigbuff));
 									bzero(buff, BUFF_SIZE);
+									close(chat_fd);
 								}
 							}
 						}

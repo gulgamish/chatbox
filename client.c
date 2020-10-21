@@ -88,7 +88,7 @@ int main(void)
 	int fd;
 	struct sockaddr_in addr;
 	char buff[BUFF_SIZE];
-	char server_reply[BUFF_SIZE];
+	char server_reply[4096];
 	int ret;
 	int choice;
 
@@ -126,7 +126,6 @@ int main(void)
 				puts("unrecognized choice");
 				return (0);
 			}
-			bzero(buff, BUFF_SIZE);
 			while (ft_getline(buff) != -1 && strcmp(buff, "exit") != 0)
 			{
 				write(fd, buff, sizeof(buff));
