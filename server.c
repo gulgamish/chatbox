@@ -13,6 +13,8 @@
 char	**ft_strsplit(char const *s, char c);
 
 static char	username[128];
+static int	fd_tab[5];
+static int	i = 0;
 
 int	ft_getline(char buff[BUFF_SIZE])
 {
@@ -139,23 +141,25 @@ int	signup(int client_fd)
 	return (1);
 }
 
+void	init_fd(int *tab, int size)
+{
+	for (int i = 0; i < size; i++)
+		tab[i] = -1;
+}
+
 int main(void)
 {
 	int fd;
-	int	chat_fd;
 	struct sockaddr_in addr;
 	struct sockaddr_in client_addr;
 	int addrlen;
 	int client_fd;
 	int ret;
 	char buff[BUFF_SIZE];
-	char bigbuff[4096];
 	char *reply = "OK";
 	int test;
 
-	bzero(bigbuff, 4096);
-	if ((chat_fd = open("chat_log", O_RDWR | O_APPEND)) == -1)
-		return (0);
+	init_fd(fd_tab, 5);
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
 		// assign a name to socket
@@ -170,34 +174,33 @@ int main(void)
 				addrlen = sizeof(client_addr);
 				while (1)
 				{
-					fork();
 					if ((client_fd = accept(fd, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) != -1)
 					{
-						if (read(client_fd, buff, sizeof(buff)) == -1)
-							return (0);
-						write(client_fd, reply, sizeof(reply));
-						if (client_choice(buff) == 1)
+						fd_tab[i++] = client_fd;
+						if (fork() == 0)
 						{
-							if (is_registred(client_fd))
+							if (read(client_fd, buff, sizeof(buff)) == -1)
+								return (0);
+							write(client_fd, reply, sizeof(reply));
+							if (client_choice(buff) == 1)
 							{
-login:
-								while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
+								if (is_registred(client_fd))
 								{
-									if ((chat_fd = open("chat_log", O_RDWR | O_APPEND)) == -1)
-										return (0);
-									dprintf(chat_fd, "[%s]: %s\n", username, buff);
-									read(chat_fd, bigbuff, 4096);
-									write(client_fd, bigbuff, sizeof(bigbuff));
-									bzero(buff, BUFF_SIZE);
-									close(chat_fd);
+login:
+									while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
+									{
+										printf("[%s]: %s\n", username, buff);
+										write(client_fd, reply, sizeof(reply));
+										bzero(buff, BUFF_SIZE);
+									}
 								}
 							}
-						}
-						else if (client_choice(buff) == 2)
-						{
-							if (signup(client_fd) == -1)
-								return (0);
-goto login;
+							else if (client_choice(buff) == 2)
+							{
+								if (signup(client_fd) == -1)
+									return (0);
+								goto login;
+							}
 						}
 					}
 					else
