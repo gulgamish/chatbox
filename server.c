@@ -10,11 +10,16 @@
 
 #define BUFF_SIZE 80
 
+typedef struct	user
+{
+	char	username[128];
+	char	*msg[40];
+}		user;
+
 char	**ft_strsplit(char const *s, char c);
 
-static char	username[128];
-static int	fd_tab[5];
-static int	i = 0;
+static user		users_data[1028];
+static int		i = 0;
 
 int	ft_getline(char buff[BUFF_SIZE])
 {
@@ -92,7 +97,7 @@ int	is_registred(int client_fd)
 			if (is_passwd_match(user_data[i], buff_passwd))
 			{
 				write(client_fd, reply_ok, sizeof(reply_ok));
-				strcpy(username, buff_user);
+				strcpy(users_data[client_fd].username, buff_user);
 				return (1);
 			}
 			else
@@ -136,15 +141,38 @@ int	signup(int client_fd)
 		return (-1);
 	write(client_fd, reply, sizeof(reply));
 	write_clientdata(fd, buff_name, buff_user, buff_passwd);
-	strcpy(username, buff_user);
+	strcpy(users_data[client_fd].username, buff_user);
 	close(fd);
 	return (1);
 }
 
-void	init_fd(int *tab, int size)
+void	init_fd(user *users_data, int size)
 {
 	for (int i = 0; i < size; i++)
-		tab[i] = -1;
+	{
+		bzero(users_data[i].username, 128);
+		for (int j = 0; j < 40; j++)
+			users_data[i].msg[j] = NULL;
+	}
+}
+
+void	send_data(user user_data, int client_fd)
+{
+	int check;
+
+	check = 0;
+	for (int i = 0; i < 1028; i++)
+	{
+		if (i != client_fd && users_data[i].username[0] != '\0' && users_data[i].msg[0])
+		{
+			check = 1;
+			write(client_fd, users_data[i].msg[0], sizeof(users_data[i].msg[0]));
+			free(user_data.msg[0]);
+			user_data.msg[0] = NULL;
+		}
+	}
+	if (check == 0)
+		write(client_fd, "NO DATA", 8);
 }
 
 int main(void)
@@ -159,7 +187,7 @@ int main(void)
 	char *reply = "OK";
 	int test;
 
-	init_fd(fd_tab, 5);
+	init_fd(users_data, 1028);
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
 		// assign a name to socket
@@ -176,7 +204,6 @@ int main(void)
 				{
 					if ((client_fd = accept(fd, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) != -1)
 					{
-						fd_tab[i++] = client_fd;
 						if (fork() == 0)
 						{
 							if (read(client_fd, buff, sizeof(buff)) == -1)
@@ -187,10 +214,11 @@ int main(void)
 								if (is_registred(client_fd))
 								{
 login:
+									printf("user %s is currently logged it\n", users_data[client_fd].username);
 									while ((ret = read(client_fd, buff, sizeof(buff))) != 0 && ret != -1)
 									{
-										printf("[%s]: %s\n", username, buff);
-										write(client_fd, reply, sizeof(reply));
+										printf("[%s]: %s\n", users_data[client_fd].username, buff);
+										//write(client_fd, reply, sizeof(reply));
 										bzero(buff, BUFF_SIZE);
 									}
 								}

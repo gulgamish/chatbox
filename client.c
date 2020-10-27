@@ -8,6 +8,9 @@
 
 #define BUFF_SIZE 80
 
+static int	c_exit;
+static char	username[128];
+
 int	ft_getline(char buff[BUFF_SIZE])
 {
 	char c;
@@ -52,6 +55,7 @@ int	signin(int server_fd)
 		printf("access not granted, wrong password\n");
 		return (-1);
 	}
+	strcpy(username, buff_user);
 	return (1);
 }
 
@@ -80,6 +84,7 @@ int	signup(int server_fd)
 	write(server_fd, buff_passwd, sizeof(buff_passwd));
 	if (read(server_fd, server_reply, sizeof(server_reply)) == -1)
 		return (-1);
+	strcpy(username, buff_user);
 	return (1);
 }
 
@@ -93,6 +98,8 @@ int main(void)
 	int choice;
 
 	bzero(buff, BUFF_SIZE);
+	bzero(username, 128);
+	c_exit = 0;
 	choice = 0;
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) != -1)
 	{
@@ -126,16 +133,20 @@ int main(void)
 				puts("unrecognized choice");
 				return (0);
 			}
-			while (ft_getline(buff) != -1 && strcmp(buff, "exit") != 0)
+			bzero(buff, BUFF_SIZE);
+			while (1)
 			{
+				write(1, "[", 1);
+				write(1, username, strlen(username));
+				write(1, "]: ", 3);
+				if (ft_getline(buff) == -1)
+					return (-1);
+				if (strcmp(buff, "exit") == 0)
+					break ;
 				write(fd, buff, sizeof(buff));
-				read(fd, server_reply, sizeof(server_reply));
-				puts(server_reply);
-				bzero(buff, BUFF_SIZE);
+				//read(fd, server_reply, sizeof(server_reply));
 			}
 		}
-		else
-			puts(strerror(errno));
 	}
 	else
 		puts(strerror(errno));
